@@ -482,6 +482,12 @@ class MailmanArchiveScraper:
         url_parts = message_url.split('/')
         # eg /Users/phil/Sites/examplesite/html/list-name/2009-February
         message_dir = self.publish_dir + url_parts[-2]
+        if not os.path.lexists(message_dir):
+            try:
+                os.mkdir(message_dir)
+            except IOError:
+                print "Could not create", message_dir, " directory"
+                raise
         
         # Save our local copy.
         # eg /Users/phil/Sites/examplesite/html/list-name/2009-February/000042.html
