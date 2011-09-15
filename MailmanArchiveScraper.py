@@ -315,13 +315,31 @@ class MailmanArchiveScraper:
         local_index.close()
         
         soup = BeautifulSoup(source)
-        
+
+        if not soup.first('table'):
+            return
+
         # Go through each row in the table except the first (which is column headers).
         for row in soup.first('table')('tr')[1:]:
             # Get the text in the first column: "February 2009:"
-            (month, year) = row('td')[0].string.split()
-            # Strip the colon off.
-            year = year[:-1]
+            archive_date = row('td')[0].string
+            if 'quarter' in archive_date:
+                (ordinal, nothing , year) = archive_date.split()
+                quarter_no = str(['First','Second','Third','Fourth'].index(ordinal)+1)
+                # Strip the colon off.
+                year = year[:-1]
+                formatted_date = year+'q'+quarter_no
+            else:
+                if ' ' in archive_date:
+                    (month, year) = archive_date.split()
+                    # Strip the colon off.
+                    year = year[:-1]
+                    formatted_date = year+'-'+month
+                else:
+                    formatted_date=archive_date[:-1]
+
+
+
 
             # Scrape the date page for this month and get all its messages.
             # keep_fetching will be True or False, depending on whether we need to keep getting older months.
@@ -339,7 +357,7 @@ class MailmanArchiveScraper:
     def scrapeMonth(self, date):
         """
         Scrapes a monthly archive date page and follows through to all the messages listed
-        date is a string of the form '2009-February'
+        date is a string of the form '2009-February' or '2009'
         """
         
         # eg http://lists.example.com/mailman/private/list-name/2009-February
