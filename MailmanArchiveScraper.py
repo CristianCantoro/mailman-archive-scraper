@@ -8,6 +8,7 @@
 * Hasn't had a huge amount of testing -- use with care.
 """
 import ClientForm, ConfigParser, datetime, email.utils, mechanize, os, PyRSS2Gen, re, sys, time, urlparse
+import urllib2
 from BeautifulSoup import BeautifulSoup
 
 class Configuration:
@@ -347,8 +348,12 @@ class MailmanArchiveScraper:
 
             # Scrape the date page for this month and get all its messages.
             # keep_fetching will be True or False, depending on whether we need to keep getting older months.
-            keep_fetching = self.scrapeMonth(year+'-'+month)
-            
+            try:
+                keep_fetching = self.scrapeMonth(formatted_date)
+            except urllib2.HTTPError: 
+                print "Skipping ",formatted_date
+                keep_fetching = True
+
             if not keep_fetching:
                 break;
         
