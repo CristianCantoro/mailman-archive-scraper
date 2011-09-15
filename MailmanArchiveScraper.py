@@ -10,62 +10,8 @@
 import ClientForm, ConfigParser, datetime, email.utils, mechanize, os, PyRSS2Gen, re, sys, time, urlparse
 from BeautifulSoup import BeautifulSoup
 
-
-class FullRSSItem(PyRSS2Gen.RSSItem):
-    """
-    Extending the basic RSSItem class in order to allow for an extra 'content:encoded' element.
-    This should be passed in to the class in the initial dictionary keyed with 'content'.
-    The text can be HTML.
-    """
-    
-    def __init__(self, **kwargs):
-        if 'content' in kwargs:
-            self.content = kwargs['content']
-            del kwargs['content']
-        else:
-            self.content = None
-        PyRSS2Gen.RSSItem.__init__(self, **kwargs)
-
-
-    def publish_extensions(self, handler):
-        # handler.startElement("content:encoded")
-        # handler.endElement("content:encoded")
-        PyRSS2Gen._opt_element(handler, "content:encoded", self.content)
-
-
-class MailmanArchiveScraper:
-    """
-    Scrapes the archive pages of one or more lists in a Mailman installation and republishes the contents.
-    """
-    
-    def __init__(self):
-        self.loadConfig()
-
-        # We need to know if this is a public or private list.
-        # We assume it's public if there's no username set.
-        self.public_list = True
-        if self.username:
-            self.public_list = False
-
-        # Set the URL for all the archive's pages.
-        if self.public_list:
-            self.list_url = self.protocol + '://' + self.domain + '/pipermail/' + self.list_name
-        else:
-            self.list_url = self.protocol + '://' + self.domain + '/mailman/private/' + self.list_name
-
-        # Make the directory in which we'll save all the files on the local machine.
-        if not os.path.exists(self.publish_dir):
-            os.mkdir(self.publish_dir)
-            
-        # We'll keep track of how many items (emails) we fetch with this.
-        self.messages_fetched = 0
-        
-        self.prepareRSS()
-        
-        self.prepareRegExps()
-        
-
-    def loadConfig(self):
+class Configuration:
+    def load(self):
         "Loads configuration from the MailmanArchiveScraper.cfg file"
         config_file = sys.path[0]+'/MailmanArchiveScraper.cfg'
         config = ConfigParser.SafeConfigParser({'protocol': 'http'})
@@ -116,6 +62,83 @@ class MailmanArchiveScraper:
         self.publish_url = config.get('Local', 'publish_url')
         self.hours_to_go_back = int(config.get('Local', 'hours_to_go_back'))
         self.verbose = config.getboolean('Local', 'verbose')
+
+
+
+class FullRSSItem(PyRSS2Gen.RSSItem):
+    """
+    Extending the basic RSSItem class in order to allow for an extra 'content:encoded' element.
+    This should be passed in to the class in the initial dictionary keyed with 'content'.
+    The text can be HTML.
+    """
+    
+    def __init__(self, **kwargs):
+        if 'content' in kwargs:
+            self.content = kwargs['content']
+            del kwargs['content']
+        else:
+            self.content = None
+        PyRSS2Gen.RSSItem.__init__(self, **kwargs)
+
+
+    def publish_extensions(self, handler):
+        # handler.startElement("content:encoded")
+        # handler.endElement("content:encoded")
+        PyRSS2Gen._opt_element(handler, "content:encoded", self.content)
+
+
+class MailmanArchiveScraper:
+    """
+    Scrapes the archive pages of one or more lists in a Mailman installation and republishes the contents.
+    """
+    
+    def __init__(self, configuration):
+        self.loadConfig(configuration)
+
+        # We need to know if this is a public or private list.
+        # We assume it's public if there's no username set.
+        self.public_list = True
+        if self.username:
+            self.public_list = False
+
+        # Set the URL for all the archive's pages.
+        if self.public_list:
+            self.list_url = self.protocol + '://' + self.domain + '/pipermail/' + self.list_name
+        else:
+            self.list_url = self.protocol + '://' + self.domain + '/mailman/private/' + self.list_name
+
+        # Make the directory in which we'll save all the files on the local machine.
+        if not os.path.exists(self.publish_dir):
+            os.mkdir(self.publish_dir)
+            
+        # We'll keep track of how many items (emails) we fetch with this.
+        self.messages_fetched = 0
+        
+        self.prepareRSS()
+        
+        self.prepareRegExps()
+        
+    def loadConfig(self, configuration):
+        "Loads configuration from the MailmanArchiveScraper.cfg file"
+        self.username = configuration.username
+        self.password = configuration.password
+        self.domain = configuration.domain
+        self.protocol = configuration.protocol
+        self.list_name = configuration.list_name
+        self.filter_email_addresses = configuration.filter_email_addresses
+        self.list_info_url = configuration.list_info_url
+        self.strip_quotes = configuration.strip_quotes
+        self.head_html = configuration.head_html
+        self.search_replace = configuration.search_replace
+        self.rss_file = configuration.rss_file
+        self.items_for_rss = configuration.items_for_rss
+        self.rss_title = configuration.rss_title
+        self.rss_description = configuration.rss_description
+        self.publish_dir = configuration.publish_dir
+        self.publish_url = configuration.publish_url
+        self.hours_to_go_back = configuration.hours_to_go_back
+        self.verbose = configuration.verbose
+
 
 
     def prepareRegExps(self):
@@ -522,10 +545,34 @@ class MailmanArchiveScraper:
             exit()
 
 def main():
-    scraper = MailmanArchiveScraper()
+    config = Configuration()
+    config.load()
+    if '[' not in config.list_name:
+        scraper = MailmanArchiveScraper(config)
+        scraper.scrape()
+    else:
+        lists = eval(config.list_name)
+        all_items = []
+        for l in lists:
+            config.list_name = l
+            scraper = MailmanArchiveScraper(config)
+            scraper.scrape()
+            all_items += scraper.rss_items
     
-    scraper.scrape()
+    complete_rss = PyRSS2Gen.RSS2(
+        title = config.rss_title,
+        link = config.list_info_url,
+        description = config.rss_description,
+        lastBuildDate = datetime.datetime.now()
+    )
+    
+    complete_rss.rss_attrs['xmlns:content'] = 'http://purl.org/rss/1.0/modules/content/'
+ 
+    complete_rss.items = all_items
+    complete_rss.write_xml(open(config.rss_file, "w"), 'utf-8')
 
+
+         
 
 if __name__ == "__main__":
     main()
