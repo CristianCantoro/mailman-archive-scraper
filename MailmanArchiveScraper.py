@@ -573,6 +573,8 @@ class MailmanArchiveScraper:
         if fatal:
             exit()
 
+from operator import attrgetter
+
 def main():
     config = Configuration()
     config.load()
@@ -587,7 +589,8 @@ def main():
             scraper = MailmanArchiveScraper(config)
             scraper.scrape()
             all_items += scraper.rss_items
-    
+
+   
     complete_rss = PyRSS2Gen.RSS2(
         title = config.rss_title,
         link = config.list_info_url,
@@ -596,7 +599,10 @@ def main():
     )
     
     complete_rss.rss_attrs['xmlns:content'] = 'http://purl.org/rss/1.0/modules/content/'
- 
+    all_items.sort( key =attrgetter('pubDate'))
+    all_items.reverse()
+    print [ i.pubDate for i in all_items ]
+
     complete_rss.items = all_items
     complete_rss.write_xml(open(config.rss_file, "w"), 'utf-8')
 
