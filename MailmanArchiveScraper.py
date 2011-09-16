@@ -275,7 +275,7 @@ class MailmanArchiveScraper:
         # Add this message to the RSS feed.
         self.rss_items.append(
             FullRSSItem(
-                title = sender + ' > ' + subject,
+                title = + self.list_name + ' > ' + sender + ' > ' + subject,
                 link = message_url,
                 description = self.smartTruncate(body_text, 500),
                 pubDate = datetime.datetime.fromtimestamp(message_time),
