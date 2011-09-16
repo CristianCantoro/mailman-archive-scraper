@@ -53,7 +53,7 @@ class Configuration:
                     self.error("'"+sr+"' is not a valid search_replace string.")
                 self.search_replace[search] = replace
         
-        
+        self.rss_locallinks = config.getboolean('RSS', 'rss_locallinks')
         self.rss_file = config.get('RSS', 'rss_file')
         self.items_for_rss = int(config.get('RSS', 'items_for_rss'))
         self.rss_title = config.get('RSS', 'rss_title')
@@ -135,6 +135,7 @@ class MailmanArchiveScraper:
         self.items_for_rss = configuration.items_for_rss
         self.rss_title = configuration.rss_title
         self.rss_description = configuration.rss_description
+        self.rss_locallinks = configuration.rss_locallinks
         self.publish_dir = configuration.publish_dir
         self.publish_url = configuration.publish_url
         self.hours_to_go_back = configuration.hours_to_go_back
@@ -501,7 +502,10 @@ class MailmanArchiveScraper:
 
         if self.messages_fetched < self.items_for_rss:
             # Add this message to the RSS feed items...
-            self.addRSSItem(local_message_url, message_time, soup)
+            if self.rss_locallinks:
+                self.addRSSItem(local_message_url, message_time, soup)
+            else:
+                self.addRSSItem(message_url, message_time, soup)
         
         return hours_ago
         
