@@ -110,7 +110,7 @@ class MailmanArchiveScraper:
 
         # Make the directory in which we'll save all the files on the local machine.
         if not os.path.exists(self.publish_dir):
-            os.mkdir(self.publish_dir)
+            os.makedirs(self.publish_dir)
             
         # We'll keep track of how many items (emails) we fetch with this.
         self.messages_fetched = 0
