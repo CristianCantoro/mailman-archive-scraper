@@ -596,21 +596,19 @@ def main():
             scraper.scrape()
             all_items += scraper.rss_items
 
-   
-    complete_rss = PyRSS2Gen.RSS2(
-        title = config.rss_title,
-        link = config.list_info_url,
-        description = config.rss_description,
-        lastBuildDate = datetime.datetime.now()
-    )
-    
-    complete_rss.rss_attrs['xmlns:content'] = 'http://purl.org/rss/1.0/modules/content/'
-    all_items.sort( key =attrgetter('pubDate'))
-    all_items.reverse()
-    print [ i.pubDate for i in all_items ]
+        complete_rss = PyRSS2Gen.RSS2(
+            title = config.rss_title,
+            link = config.list_info_url,
+            description = config.rss_description,
+            lastBuildDate = datetime.datetime.now()
+        )
+        
+        complete_rss.rss_attrs['xmlns:content'] = 'http://purl.org/rss/1.0/modules/content/'
+        all_items.sort( key =attrgetter('pubDate'))
+        all_items.reverse()
 
-    complete_rss.items = all_items
-    complete_rss.write_xml(open(config.rss_file, "w"), 'utf-8')
+        complete_rss.items = all_items
+        complete_rss.write_xml(open(config.rss_file, "w"), 'utf-8')
 
 
          
