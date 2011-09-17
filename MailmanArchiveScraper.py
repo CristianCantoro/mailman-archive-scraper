@@ -207,7 +207,7 @@ class MailmanArchiveScraper:
             self.scrapeList()
             self.publishRSS()
         except urllib2.HTTPError as inst:
-            print "Could not load", self.list_name, ":", inst
+            self.error("Could not load" + self.list_name + ":" + repr(inst), fatal=False)
        
     
     def prepareRSS(self):
@@ -372,7 +372,7 @@ class MailmanArchiveScraper:
             try:
                 keep_fetching = self.scrapeMonth(formatted_date)
             except urllib2.HTTPError as inst: 
-                print "Skipping ",formatted_date, "due to ", inst
+                self.error("Skipping "+formatted_date+"due to "+repr(inst), fatal=False)
                 keep_fetching = True
 
             if not keep_fetching:
@@ -594,8 +594,6 @@ def main():
         list_urls = [ l('a')[0]['href'] for l in list_table ]
         list_names = [i.split('/')[-1] for i in list_urls ]
         config.list_name = repr(list_names)
-        print config.list_name
-        print list_info_url
 
     if '[' not in config.list_name:
         scraper = MailmanArchiveScraper(config)
