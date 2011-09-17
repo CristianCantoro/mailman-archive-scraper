@@ -466,42 +466,42 @@ class MailmanArchiveScraper:
         Adds the message to the RSS feed items.
         Returns the number of hours old this message is.
         """
-        
-        source = self.fetchPage(message_url)
-
-        # Remove all the stuff we don't want.
-        source = self.filterPage(source)
-        
-        # Work out how many hours ago this message was.
-        soup = BeautifulSoup(source)
-
-        # The time is in the first <I></I> after the <H1>.
-        message_time = time.mktime(email.utils.parsedate(soup.h1.findNextSibling('i').string))
-        hours_ago = (time.time() - message_time) / 3600
-
         # Get the directory the message file is in.
         # It should already have been created in scrapeMonth()
         # eg http://lists.example.com/mailman/private/list-name/2009-February/000042.html
         url_parts = message_url.split('/')
         # eg /Users/phil/Sites/examplesite/html/list-name/2009-February
         message_dir = self.publish_dir + url_parts[-2]
+        local_message_path = message_dir + '/' + url_parts[-1]
+        local_message_url = self.publish_url + url_parts[-2] + '/' + url_parts[-1]
+
         if not os.path.lexists(message_dir):
             try:
                 os.mkdir(message_dir)
-            except IOError:
-                print "Could not create", message_dir, " directory"
-                raise
-        
-        # Save our local copy.
-        # eg /Users/phil/Sites/examplesite/html/list-name/2009-February/000042.html
-        local_message = open(message_dir + '/' + url_parts[-1], 'w')
-        local_message.write(source)
-        local_message.close()
-        
-        # Create the URL for linking to this message from the RSS feed.
-        # eg http://www.example.com/list-name/2009-February/000042.html
-        local_message_url = self.publish_url + url_parts[-2] + '/' + url_parts[-1]
+            except IOError as inst:
+                self.error("Could not create"+ message_dir+" directory"+repr(inst), fatal=True)
+ 
+        if os.path.exists(local_message_path):
+            source = open(local_message_path, 'r').read()
+        else:
+            source = self.fetchPage(message_url)
+            # Remove all the stuff we don't want.
+            source = self.filterPage(source)
 
+        
+        # Work out how many hours ago this message was.
+        soup = BeautifulSoup(source)
+        # The time is in the first <I></I> after the <H1>.
+        message_time = time.mktime(email.utils.parsedate(soup.h1.findNextSibling('i').string))
+        hours_ago = (time.time() - message_time) / 3600
+
+        if not os.path.exists(local_message_path):
+            # Save our local copy.
+            # eg /Users/phil/Sites/examplesite/html/list-name/2009-February/000042.html
+            local_message = open(local_message_path, 'w')
+            local_message.write(source)
+            local_message.close()
+        
         if self.messages_fetched < self.items_for_rss:
             # Add this message to the RSS feed items...
             if self.rss_locallinks:
