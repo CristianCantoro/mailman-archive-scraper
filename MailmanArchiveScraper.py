@@ -203,10 +203,12 @@ class MailmanArchiveScraper:
         if not self.public_list:
             self.logIn()
 
-        self.scrapeList()
-
-        self.publishRSS()
-        
+        try:
+            self.scrapeList()
+            self.publishRSS()
+        except urllib2.HTTPError as inst:
+            print "Could not load", self.list_name, ":", inst
+       
     
     def prepareRSS(self):
         """Prepare things for the RSS feed."""
