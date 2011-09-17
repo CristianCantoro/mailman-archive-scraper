@@ -622,7 +622,8 @@ def main():
         all_items.sort( key =attrgetter('pubDate'))
         all_items.reverse()
 
-        complete_rss.items = all_items
+        earliest_entry = datetime.datetime.now() - datetime.timedelta(10)
+        complete_rss.items = [ i for i in all_items if i.pubDate > earliest_entry ]
         complete_rss.write_xml(open(config.rss_file, "w"), 'utf-8')
 
 
