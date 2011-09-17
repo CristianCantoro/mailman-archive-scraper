@@ -371,8 +371,8 @@ class MailmanArchiveScraper:
             # keep_fetching will be True or False, depending on whether we need to keep getting older months.
             try:
                 keep_fetching = self.scrapeMonth(formatted_date)
-            except urllib2.HTTPError: 
-                print "Skipping ",formatted_date
+            except urllib2.HTTPError as inst: 
+                print "Skipping ",formatted_date, "due to ", inst
                 keep_fetching = True
 
             if not keep_fetching:
