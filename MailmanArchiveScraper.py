@@ -602,9 +602,11 @@ def main():
         scraper.scrape()
     else:
         lists = eval(config.list_name)
+        pub_dir = config.publish_dir
         all_items = []
         for l in lists:
             config.list_name = l
+            config.publish_dir = pub_dir + "/" + l
             scraper = MailmanArchiveScraper(config)
             scraper.scrape()
             all_items += scraper.rss_items
